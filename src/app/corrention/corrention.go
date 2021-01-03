@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"gin-vue-admin/pkg/response"
+	"net/http"
 	"reflect"
+	"time"
 
 	xfyunauthorization "gin-vue-admin/pkg/xfyun/authorization"
+	xfyuntextcorrention "gin-vue-admin/pkg/xfyun/textcorrention"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,11 +31,20 @@ func (p *provider) corrention() string {
 	return p.name
 }
 
+// 讯飞文本纠错具体实现方法
 func xfyun(c *gin.Context) int {
 	fmt.Println("running function xfyun!", c.Query("charset"))
 
-	authorization := xfyunauthorization.Authorization()
+	host := "api.xf-yun.com"
+	date := time.Now().UTC().Format(http.TimeFormat)
+	c.Set("host", host)
+	c.Set("date", date)
+
+	authorization := xfyunauthorization.Authorization(c)
+	c.Set("authorization", authorization)
+	rst := xfyuntextcorrention.PostData(c)
 	fmt.Println("authorization=", authorization)
+	fmt.Println(rst)
 	return 100
 }
 

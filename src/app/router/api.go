@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func noCheckSignRouterV1(r *gin.RouterGroup) {
-	v1 := r.Group("/api/v2")
+func noCheckSignRouterV2(r *gin.RouterGroup) {
+	v2 := r.Group("/api/v2")
 
-	v1.POST("/text/corrention", middleware.CheckCorrentionParams(), corrention.NlpTextCorrention)
+	v2.POST("/text/corrention", middleware.CheckCorrentionParams(), corrention.NlpTextCorrention)
 }

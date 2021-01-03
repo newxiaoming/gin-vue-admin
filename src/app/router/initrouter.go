@@ -17,7 +17,7 @@ func Initrouter() *gin.Engine {
 	// 抓取网页正文
 	// r.POST("api/nlp/corrention", web2text.Web2text)
 	g := r.Group("")
-	noCheckSignRouterV1(g)
+	noCheckSignRouterV2(g)
 	return r
 }
 

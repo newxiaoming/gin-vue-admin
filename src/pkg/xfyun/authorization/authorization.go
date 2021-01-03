@@ -6,28 +6,28 @@ import (
 	"encoding/base64"
 	"fmt"
 	"gin-vue-admin/tool"
-	"net/http"
-	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // Signature原始字段由 host，date，request-line三个参数按照格式拼接成，拼接的格式为(\n为换行符,’:’后面有一个空格)
-func signature() string {
+func signature(c *gin.Context) string {
 	APISecret := tool.GetConfig("xfyun.textcorrention.apisecret")
 	fmt.Println("secret=", APISecret)
-	host := "api.xf-yun.com"
-	date := time.Now().UTC().Format(http.TimeFormat)
+	// host := "api.xf-yun.com"
+	// date := time.Now().UTC().Format(http.TimeFormat)
 	requstLine := "POST /v1/private/s9a87e3ec HTTP/1.1"
-	strings := "host: " + host + "\ndate: " + date + "\n" + requstLine
-	fmt.Println("date=", date)
+	strings := "host: " + c.GetString("host") + "\ndate: " + c.GetString("date") + "\n" + requstLine
+	fmt.Println("date=", c.GetString("date"))
 	fmt.Println("signature strings =", strings)
 	return computeHmacSha256(strings, APISecret)
 }
 
 // Authorization： 规则api_key="$api_key",algorithm="hmac-sha256",headers="host date request-line",signature="$signature"
-func Authorization() string {
+func Authorization(c *gin.Context) string {
 	APIKey := tool.GetConfig("xfyun.textcorrention.apikey")
 	fmt.Println("APIKey=", APIKey)
-	signature := signature()
+	signature := signature(c)
 	fmt.Println("signature=", signature)
 	strings := "api_key=\"" + APIKey + "\",algorithm=\"hmac-sha256\"" + ",headers=\"host date request-line\"" + ",signature=\"" + signature + "\""
 	fmt.Println("Authorization string: ", strings)
