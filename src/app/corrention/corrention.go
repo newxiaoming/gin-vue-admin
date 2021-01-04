@@ -1,11 +1,10 @@
 package corrention
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"gin-vue-admin/internal/middleware"
 	"gin-vue-admin/pkg/response"
-	"io/ioutil"
 	"net/http"
 	"reflect"
 	"time"
@@ -14,6 +13,7 @@ import (
 	xfyuntextcorrention "gin-vue-admin/pkg/xfyun/textcorrention"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 // textCorrection 接口
@@ -31,11 +31,14 @@ type CorrentionParams struct {
 	Content []struct {
 		Text string `json:"text" binding:"required"`
 		Line string `json:"line" binding:"required"`
-	} `josn:"content"`
+	} `json:"content" binding:"required"`
 	Total string `json:"total" binding:"required"`
 }
 
 var textArr CorrentionParams
+var (
+	cp middleware.CorrentionParams
+)
 
 // corrention 文本纠错函数
 func (p *provider) corrention() string {
@@ -43,7 +46,7 @@ func (p *provider) corrention() string {
 }
 
 // 讯飞文本纠错具体实现方法
-func xfyun(c *gin.Context) int {
+func xfyun(c *gin.Context, text string) int {
 	fmt.Println("running function xfyun!", c.Query("charset"))
 
 	host := "api.xf-yun.com"
@@ -53,7 +56,7 @@ func xfyun(c *gin.Context) int {
 
 	authorization := xfyunauthorization.Authorization(c)
 	c.Set("authorization", authorization)
-	rst := xfyuntextcorrention.PostData(c)
+	rst := xfyuntextcorrention.PostData(c, text)
 	fmt.Println("authorization=", authorization)
 	fmt.Println(rst)
 	return 100
@@ -74,12 +77,14 @@ func Call(m map[string]interface{}, name string, params ...interface{}) (result 
 	result = f.Call(in)
 	return
 }
-func Handle(c *gin.Context, providerName string) {
+
+// Handle
+func Handle(c *gin.Context, providerName string, text string) {
 	funcs := map[string]interface{}{
 		"xfyun": xfyun,
 	}
 
-	if result, err := Call(funcs, providerName, c); err == nil {
+	if result, err := Call(funcs, providerName, c, text); err == nil {
 		fmt.Println("result:", result)
 		for _, r := range result {
 			fmt.Printf(" return: type=%v, value=[%d]\n", r.Type(), r.Int())
@@ -91,29 +96,35 @@ func Handle(c *gin.Context, providerName string) {
 
 // NlpTextCorrention 入口
 func NlpTextCorrention(c *gin.Context) {
-	// providerName := c.DefaultQuery("provider_name", "xfyun")
-	bodyData, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
+	providerName := c.DefaultQuery("provider_name", "xfyun")
+	if err := c.ShouldBindBodyWith(&cp, binding.JSON); err != nil {
 		response.FailResult(501, err.Error(), c)
 	}
-	fmt.Println(bodyData)
-
-	err = json.Unmarshal(bodyData, &textArr)
-	if err != nil {
-		response.FailResult(500, err.Error(), c)
-	}
-	fmt.Println(textArr)
-	// newProvider := &provider{
-	// 	name: providerName,
-	// 	text: "dd",
+	// bodyData, err := ioutil.ReadAll(c.Request.Body)
+	// if err != nil {
+	// 	response.FailResult(501, err.Error(), c)
 	// }
+	fmt.Println(&cp)
 
-	// Handle(c, providerName)
+	// err = json.Unmarshal(bodyData, &textArr)
+	// if err != nil {
+	// 	response.FailResult(500, err.Error(), c)
+	// }
+	// fmt.Println(textArr)
+	newProvider := &provider{
+		name: providerName,
+		text: cp.Total,
+	}
+
+	for _, v := range cp.Content {
+		Handle(c, providerName, v.Text)
+	}
 
 	// var newTextCorrection textCorrection
 	// newTextCorrection = newProvider
-	// response.SuccessResult(gin.H{
-	// 	"text": newProvider.name,
-	// }, c)
+	response.SuccessResult(gin.H{
+		"text": newProvider.text,
+		"name": newProvider.name,
+	}, c)
 	// fmt.Println(newTextCorrection.corrention())
 }

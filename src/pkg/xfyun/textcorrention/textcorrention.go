@@ -1,11 +1,14 @@
 package textcorrention
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"gin-vue-admin/pkg/response"
 	"gin-vue-admin/tool"
 	"net/url"
+	"reflect"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,7 +38,48 @@ type requestBody struct {
 	} `json:"payload"`
 }
 
-func PostData(c *gin.Context) string {
+type textData struct {
+	Char   interface{} `json:"char"`
+	Word   interface{} `json:"word"`
+	Redund interface{} `json:"redund"`
+	Miss   interface{} `json:"miss"`
+	Order  interface{} `json:"order"`
+	Dapei  interface{} `json:"dapei"`
+	Punc   interface{} `json:"punc"`
+	Idm    interface{} `json:"idm"`
+	Org    interface{} `json:"org"`
+	Leader interface{} `json:"leader"`
+	Number interface{} `json:"number"`
+}
+
+type responseData struct {
+	Header struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		SID     string `json:"sid"`
+	} `json:"header"`
+	Payload struct {
+		Result struct {
+			Compress string `json:"compress"`
+			Encoding string `json:"encoding"`
+			Format   string `json:"format"`
+			Seq      string `json:"seq"`
+			Status   string `json:"status"`
+			Text     string `json:"text"`
+		} `json:"result"`
+	} `json:"payload"`
+}
+
+var (
+	respData     responseData
+	textOrigData textData
+)
+
+// PostData 提交数据
+func PostData(c *gin.Context, text string) string {
+	var (
+		data []byte
+	)
 	uri := "https://api.xf-yun.com/v1/private/s9a87e3ec?authorization=%s&host=%s&date=%s"
 	contentType := "application/json"
 	reqURL := fmt.Sprintf(uri, c.GetString("authorization"), c.GetString("host"), url.QueryEscape(c.GetString("date")))
@@ -51,12 +95,81 @@ func PostData(c *gin.Context) string {
 	reqBody.Payload.Input.Compress = "raw"
 	reqBody.Payload.Input.Format = "json"
 	reqBody.Payload.Input.Status = 3
-	reqBody.Payload.Input.Text = "5a+55b6F5q+P5LiA6aG55bel5L2c6YO96KaB5LiA5Lid5LiN5aSf77yM5Lu75L2V5LqL5oOF5Y+q6KaB55So5b+D5Y675YGa77yM5oC75Lya5pyJ5omA5pS255uK77yM5L2c5Li65L6b55S15omA5omA6ZW/6Z2i5a+555qE5LqL5oOF5b6I5aSaLOS5n+W+iOe5geeQkO+8jOS9huaIkeS7rOWPquimgeS7pemrmOW6pui0n+i0o+eahOaAgeW6puadpeWBmuWlveavj+S4gOS7tuS6i+aDhe+8jOaIkeS7rOWwseS8muWcqOWwj+S6i+S5i+S4reS9k+aCn+WIsOactOWunuiAjOa3seWIu+eahOmBk+eQhuOAgg=="
+	reqBody.Payload.Input.Text = base64.StdEncoding.EncodeToString([]byte(text))
 
 	r, err := json.Marshal(reqBody)
 	if err != nil {
 		response.FailResult(500, err.Error(), c)
 	}
 
-	return tool.HttpPost(reqURL, contentType, string(r))
+	result := tool.HttpPost(reqURL, contentType, string(r))
+	if data, err = formatData([]byte(result)); err != nil {
+		fmt.Println(err)
+	}
+
+	// if v, err = json.Marshal(data); err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	return string(data)
+}
+
+// formatData 格式化返回的数据
+func formatData(data []byte) ([]byte, error) {
+	var v []byte
+	// item := map[string]interface{}{}
+	// items := response.TextCorrentionResponseItem{}
+
+	if err := json.Unmarshal(data, &respData); err != nil {
+		return nil, errors.New("responseData is no json")
+	}
+
+	if respData.Header.Code != 0 {
+		return nil, errors.New("request error")
+	}
+
+	textBase64Data, err := base64.StdEncoding.DecodeString(respData.Payload.Result.Text)
+	fmt.Println(string(textBase64Data))
+	if err != nil {
+		return nil, errors.New("responseData text is no base64")
+	}
+
+	if err := json.Unmarshal(textBase64Data, &textOrigData); err != nil {
+		fmt.Println(err)
+		return nil, errors.New("textOrigData is no json")
+	}
+
+	// 别字纠错
+	// if reflect.ValueOf(textOrigData.Char).Len() > 0 {
+	// 	for _, value := range textOrigData.Char.([]interface{}) {
+	// 		item["OriFrag"] = tool.Strval(value.([]interface{})[1])
+	// 		item["BeginPos"] = tool.Strval(value.([]interface{})[0])
+	// 		item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
+	// 		item["EndPos"] = 0
+	// 	}
+	// }
+
+	getItem(textOrigData.Char)
+
+	if v, err = json.Marshal(textOrigData); err != nil {
+		fmt.Println(err)
+	}
+
+	return v, nil
+}
+
+func getItem(data interface{}) map[string]interface{} {
+	item := map[string]interface{}{}
+	if reflect.ValueOf(data).Len() > 0 {
+		for _, value := range data.([]interface{}) {
+			item["OriFrag"] = tool.Strval(value.([]interface{})[1])
+			item["BeginPos"] = tool.Strval(value.([]interface{})[0])
+			item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
+			item["EndPos"] = 0
+		}
+	}
+
+	fmt.Println(item)
+
+	return item
 }

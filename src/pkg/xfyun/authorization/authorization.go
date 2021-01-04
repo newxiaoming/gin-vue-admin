@@ -19,6 +19,7 @@ func signature(c *gin.Context) string {
 	requstLine := "POST /v1/private/s9a87e3ec HTTP/1.1"
 	strings := "host: " + c.GetString("host") + "\ndate: " + c.GetString("date") + "\n" + requstLine
 	fmt.Println("date=", c.GetString("date"))
+	fmt.Println("host=", c.GetString("host"))
 	fmt.Println("signature strings =", strings)
 	return computeHmacSha256(strings, APISecret)
 }
