@@ -149,7 +149,30 @@ func formatData(data []byte) ([]byte, error) {
 	// 	}
 	// }
 
-	getItem(textOrigData.Char)
+	// getItem(textOrigData.Char)
+	// for _, t := range textOrigData. {
+	// 	getItem(t)
+	// }
+
+	k := reflect.ValueOf(textOrigData)
+	count := k.NumField()
+	for i := 0; i < count; i++ {
+		f := k.Field(i)
+		switch f.Kind() {
+		case reflect.Interface:
+			fmt.Println(f)
+			getItem(f.Interface)
+		}
+	}
+	// getItem(textOrigData.Word)
+	// getItem(textOrigData.Redund)
+	// getItem(textOrigData.Redund)
+	// getItem(textOrigData.Redund)
+	// getItem(textOrigData.Redund)
+	// getItem(textOrigData.Redund)
+	// getItem(textOrigData.Redund)
+	// getItem(textOrigData.Redund)
+	// getItem(textOrigData.Punc)
 
 	if v, err = json.Marshal(textOrigData); err != nil {
 		fmt.Println(err)
@@ -158,18 +181,21 @@ func formatData(data []byte) ([]byte, error) {
 	return v, nil
 }
 
-func getItem(data interface{}) map[string]interface{} {
-	item := map[string]interface{}{}
-	if reflect.ValueOf(data).Len() > 0 {
+func getItem(data interface{}) []interface{} {
+
+	items := []interface{}{}
+
+	if data != nil {
 		for _, value := range data.([]interface{}) {
+			item := map[string]interface{}{}
+
 			item["OriFrag"] = tool.Strval(value.([]interface{})[1])
 			item["BeginPos"] = tool.Strval(value.([]interface{})[0])
 			item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
 			item["EndPos"] = 0
+			fmt.Println(value)
+			items = append(items, item)
 		}
 	}
-
-	fmt.Println(item)
-
-	return item
+	return items
 }
