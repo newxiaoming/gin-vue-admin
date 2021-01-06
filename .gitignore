@@ -1,0 +1,6 @@
+src/bin/*
+!src/bin/.gitkeep
+*.yaml
+dist/*
+dist/.gitkeep
+buildfile.json
