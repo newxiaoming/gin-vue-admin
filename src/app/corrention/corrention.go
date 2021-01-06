@@ -46,7 +46,7 @@ func (p *provider) corrention() string {
 }
 
 // 讯飞文本纠错具体实现方法
-func xfyun(c *gin.Context, text string) int {
+func xfyun(c *gin.Context, text string) []interface{} {
 	fmt.Println("running function xfyun!", c.Query("charset"))
 
 	host := "api.xf-yun.com"
@@ -58,14 +58,15 @@ func xfyun(c *gin.Context, text string) int {
 	c.Set("authorization", authorization)
 	rst := xfyuntextcorrention.PostData(c, text)
 	fmt.Println("authorization=", authorization)
-	fmt.Println(rst)
-	return 100
+	return rst
 }
 
+// Call 调用
 func Call(m map[string]interface{}, name string, params ...interface{}) (result []reflect.Value, err error) {
+	// var v []byte
 	f := reflect.ValueOf(m[name])
 	if len(params) != f.Type().NumIn() {
-		err = errors.New("The number of params is not adapted.")
+		err = errors.New("The number of params is not adapted")
 		return
 	}
 
@@ -78,8 +79,9 @@ func Call(m map[string]interface{}, name string, params ...interface{}) (result 
 	return
 }
 
-// Handle
-func Handle(c *gin.Context, providerName string, text string) {
+// Handle 函数调用入口
+func Handle(c *gin.Context, providerName string, text string) interface{} {
+	var rst interface{}
 	funcs := map[string]interface{}{
 		"xfyun": xfyun,
 	}
@@ -87,15 +89,19 @@ func Handle(c *gin.Context, providerName string, text string) {
 	if result, err := Call(funcs, providerName, c, text); err == nil {
 		fmt.Println("result:", result)
 		for _, r := range result {
-			fmt.Printf(" return: type=%v, value=[%d]\n", r.Type(), r.Int())
+			// fmt.Printf(" return: type=%v, value=[%s]\n", r.Type(), r.Bytes())
+			rst = r.Interface()
 		}
 	} else {
 		fmt.Println("error:", err)
 	}
+
+	return rst
 }
 
 // NlpTextCorrention 入口
 func NlpTextCorrention(c *gin.Context) {
+
 	providerName := c.DefaultQuery("provider_name", "xfyun")
 	if err := c.ShouldBindBodyWith(&cp, binding.JSON); err != nil {
 		response.FailResult(501, err.Error(), c)
@@ -111,20 +117,20 @@ func NlpTextCorrention(c *gin.Context) {
 	// 	response.FailResult(500, err.Error(), c)
 	// }
 	// fmt.Println(textArr)
-	newProvider := &provider{
-		name: providerName,
-		text: cp.Total,
-	}
+	// newProvider := &provider{
+	// 	name: providerName,
+	// 	text: cp.Total,
+	// }
 
+	items := []interface{}{}
 	for _, v := range cp.Content {
-		Handle(c, providerName, v.Text)
+		rst := Handle(c, providerName, v.Text)
+		items = append(items, rst)
 	}
 
-	// var newTextCorrection textCorrection
+	// var newTextCorrection TextCorrentionResponseItem
 	// newTextCorrection = newProvider
-	response.SuccessResult(gin.H{
-		"text": newProvider.text,
-		"name": newProvider.name,
-	}, c)
+
+	response.SuccessResult(items, c)
 	// fmt.Println(newTextCorrection.corrention())
 }

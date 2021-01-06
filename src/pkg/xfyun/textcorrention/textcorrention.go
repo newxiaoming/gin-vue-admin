@@ -76,9 +76,9 @@ var (
 )
 
 // PostData 提交数据
-func PostData(c *gin.Context, text string) string {
+func PostData(c *gin.Context, text string) []interface{} {
 	var (
-		data []byte
+		data []interface{}
 	)
 	uri := "https://api.xf-yun.com/v1/private/s9a87e3ec?authorization=%s&host=%s&date=%s"
 	contentType := "application/json"
@@ -107,16 +107,13 @@ func PostData(c *gin.Context, text string) string {
 		fmt.Println(err)
 	}
 
-	// if v, err = json.Marshal(data); err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	return string(data)
+	return data
 }
 
 // formatData 格式化返回的数据
-func formatData(data []byte) ([]byte, error) {
-	var v []byte
+func formatData(data []byte) ([]interface{}, error) {
+	// var v []byte
+	items := []interface{}{}
 	// item := map[string]interface{}{}
 	// items := response.TextCorrentionResponseItem{}
 
@@ -139,63 +136,60 @@ func formatData(data []byte) ([]byte, error) {
 		return nil, errors.New("textOrigData is no json")
 	}
 
-	// 别字纠错
-	// if reflect.ValueOf(textOrigData.Char).Len() > 0 {
-	// 	for _, value := range textOrigData.Char.([]interface{}) {
+	// k := reflect.ValueOf(textOrigData)
+	// count := k.NumField()
+	// for i := 0; i < count; i++ {
+	// 	// f := k.Field(i)
+	// 	if k.Field(i).CanInterface() && reflect.ValueOf(k.Field(i).Interface()).Len() > 0 { //判断是否为可导出字段
+	// 		// item := map[string]interface{}{}
+	// 		item := getItem(k.Field(i).Interface())
+	// 		items = append(items, item)
+	// 	}
+	// }
+	items = getItem(textOrigData)
+	fmt.Println(items)
+
+	// if v, err = json.Marshal(items); err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	return items, nil
+}
+
+func getItem(data interface{}) []interface{} {
+	items := []interface{}{}
+
+	k := reflect.ValueOf(data)
+	count := k.NumField()
+	for i := 0; i < count; i++ {
+		// f := k.Field(i)
+		if k.Field(i).CanInterface() && reflect.ValueOf(k.Field(i).Interface()).Len() > 0 { //判断是否为可导出字段
+			// item := map[string]interface{}{}
+			// item := getItem(k.Field(i).Interface())
+			// items = append(items, item)
+			for _, value := range k.Field(i).Interface().([]interface{}) {
+				item := map[string]interface{}{}
+
+				item["OriFrag"] = tool.Strval(value.([]interface{})[1])
+				item["BeginPos"] = tool.Strval(value.([]interface{})[0])
+				item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
+				item["EndPos"] = 0
+				items = append(items, item)
+			}
+		}
+	}
+
+	// if reflect.ValueOf(data).Len() > 0 {
+	// 	for _, value := range data.([]interface{}) {
+	// 		item := map[string]interface{}{}
+
 	// 		item["OriFrag"] = tool.Strval(value.([]interface{})[1])
 	// 		item["BeginPos"] = tool.Strval(value.([]interface{})[0])
 	// 		item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
 	// 		item["EndPos"] = 0
+	// 		items = append(items, item)
 	// 	}
 	// }
-
-	// getItem(textOrigData.Char)
-	// for _, t := range textOrigData. {
-	// 	getItem(t)
-	// }
-
-	k := reflect.ValueOf(textOrigData)
-	count := k.NumField()
-	for i := 0; i < count; i++ {
-		f := k.Field(i)
-		switch f.Kind() {
-		case reflect.Interface:
-			fmt.Println(f)
-			getItem(f.Interface)
-		}
-	}
-	// getItem(textOrigData.Word)
-	// getItem(textOrigData.Redund)
-	// getItem(textOrigData.Redund)
-	// getItem(textOrigData.Redund)
-	// getItem(textOrigData.Redund)
-	// getItem(textOrigData.Redund)
-	// getItem(textOrigData.Redund)
-	// getItem(textOrigData.Redund)
-	// getItem(textOrigData.Punc)
-
-	if v, err = json.Marshal(textOrigData); err != nil {
-		fmt.Println(err)
-	}
-
-	return v, nil
-}
-
-func getItem(data interface{}) []interface{} {
-
-	items := []interface{}{}
-
-	if data != nil {
-		for _, value := range data.([]interface{}) {
-			item := map[string]interface{}{}
-
-			item["OriFrag"] = tool.Strval(value.([]interface{})[1])
-			item["BeginPos"] = tool.Strval(value.([]interface{})[0])
-			item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
-			item["EndPos"] = 0
-			fmt.Println(value)
-			items = append(items, item)
-		}
-	}
+	// fmt.Println(items)
 	return items
 }

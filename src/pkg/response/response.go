@@ -1,6 +1,7 @@
 package response
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,23 +9,24 @@ import (
 
 // Result 结构
 type Result struct {
-	Status  string      `json:"status"`
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Status  string        `json:"status"`
+	Code    int           `json:"code"`
+	Message string        `json:"message"`
+	Data    []interface{} `json:"data"`
 }
 
-func response(status string, code int, msg string, data interface{}, c *gin.Context) {
+func response(status string, code int, msg string, data []interface{}, c *gin.Context) {
+	fmt.Println(data)
 	r := Result{status, code, msg, data}
 	c.JSON(http.StatusOK, r)
 }
 
-func successResponse(data interface{}, c *gin.Context) {
+func successResponse(data []interface{}, c *gin.Context) {
 	response("success", 0, "请求成功", data, c)
 }
 
 func failResponse(code int, msg string, c *gin.Context) {
-	response("fail", code, msg, gin.H{}, c)
+	response("fail", code, msg, []interface{}{}, c)
 }
 
 // SuccessResultWithEmptyData 空数据
@@ -33,7 +35,7 @@ func SuccessResultWithEmptyData(c *gin.Context) {
 }
 
 // SuccessResult 成功响应的数据
-func SuccessResult(data interface{}, c *gin.Context) {
+func SuccessResult(data []interface{}, c *gin.Context) {
 	successResponse(data, c)
 }
 
