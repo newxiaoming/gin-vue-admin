@@ -1,4 +1,0 @@
-version: "beta 1.0"
-app_name: "gin-vue-admin"
-app:
-    host: ":8080"
