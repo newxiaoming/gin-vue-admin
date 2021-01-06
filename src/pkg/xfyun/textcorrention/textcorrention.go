@@ -11,6 +11,7 @@ import (
 	"reflect"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mitchellh/mapstructure"
 )
 
 type requestBody struct {
@@ -113,9 +114,11 @@ func PostData(c *gin.Context, text string) []interface{} {
 // formatData 格式化返回的数据
 func formatData(data []byte) ([]interface{}, error) {
 	// var v []byte
-	items := []interface{}{}
+	// var items []map[string]string
 	// item := map[string]interface{}{}
-	// items := response.TextCorrentionResponseItem{}
+	var items response.TextCorrentionResponseItem
+
+	var dataItems response.TextCorrentionResponseItem
 
 	if err := json.Unmarshal(data, &respData); err != nil {
 		return nil, errors.New("responseData is no json")
@@ -136,60 +139,42 @@ func formatData(data []byte) ([]interface{}, error) {
 		return nil, errors.New("textOrigData is no json")
 	}
 
-	// k := reflect.ValueOf(textOrigData)
-	// count := k.NumField()
-	// for i := 0; i < count; i++ {
-	// 	// f := k.Field(i)
-	// 	if k.Field(i).CanInterface() && reflect.ValueOf(k.Field(i).Interface()).Len() > 0 { //判断是否为可导出字段
-	// 		// item := map[string]interface{}{}
-	// 		item := getItem(k.Field(i).Interface())
-	// 		items = append(items, item)
-	// 	}
-	// }
-	items = getItem(textOrigData)
+	&items.VecFragment = getItem(textOrigData)
 	fmt.Println(items)
 
-	// if v, err = json.Marshal(items); err != nil {
-	// 	fmt.Println(err)
-	// }
+	dataItems.VecFragment = items
 
-	return items, nil
+	return dataItems, nil
 }
 
-func getItem(data interface{}) []interface{} {
-	items := []interface{}{}
+func getItem(data interface{}) response.TextCorrentionResponseItem {
+	// var items []map[string]string
+	var items response.TextCorrentionResponseItem
 
 	k := reflect.ValueOf(data)
 	count := k.NumField()
 	for i := 0; i < count; i++ {
-		// f := k.Field(i)
 		if k.Field(i).CanInterface() && reflect.ValueOf(k.Field(i).Interface()).Len() > 0 { //判断是否为可导出字段
-			// item := map[string]interface{}{}
-			// item := getItem(k.Field(i).Interface())
-			// items = append(items, item)
 			for _, value := range k.Field(i).Interface().([]interface{}) {
-				item := map[string]interface{}{}
+				// item := make(map[string]string)
 
-				item["OriFrag"] = tool.Strval(value.([]interface{})[1])
-				item["BeginPos"] = tool.Strval(value.([]interface{})[0])
-				item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
-				item["EndPos"] = 0
-				items = append(items, item)
+				// item["OriFrag"] = tool.Strval(value.([]interface{})[1])
+				// item["BeginPos"] = tool.Strval(value.([]interface{})[0])
+				// item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
+				// item["EndPos"] = "0"
+				item := map[string]interface{}{
+					"OriFrag":     tool.Strval(value.([]interface{})[1]),
+					"BeginPos":    tool.Strval(value.([]interface{})[0]),
+					"CorrectFrag": tool.Strval(value.([]interface{})[2]),
+					"EndPos":      "0",
+				}
+				err := mapstructure.Decode(item, &items.VecFragment)
+				if err != nil {
+					fmt.Println(err)
+				}
+				// items = append(items, item)
 			}
 		}
 	}
-
-	// if reflect.ValueOf(data).Len() > 0 {
-	// 	for _, value := range data.([]interface{}) {
-	// 		item := map[string]interface{}{}
-
-	// 		item["OriFrag"] = tool.Strval(value.([]interface{})[1])
-	// 		item["BeginPos"] = tool.Strval(value.([]interface{})[0])
-	// 		item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
-	// 		item["EndPos"] = 0
-	// 		items = append(items, item)
-	// 	}
-	// }
-	// fmt.Println(items)
 	return items
 }

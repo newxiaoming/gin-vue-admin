@@ -3,9 +3,9 @@ package response
 type TextCorrentionResponseItem struct {
 	VecFragment []struct {
 		OriFrag     string `json:"ori_frag"`
-		BeginPos    int    `json:"begin_pos"`
+		BeginPos    string `json:"begin_pos"`
 		CorrectFrag string `json:"correct_frag"`
-		EndPos      int    `json:"end_pos"`
+		EndPos      string `json:"end_pos"`
 	} `json:"vecFragment"`
 	Score     float64 `json:"score"`
 	Line      string  `json:"line"`
