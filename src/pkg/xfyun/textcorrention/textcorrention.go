@@ -77,9 +77,9 @@ var (
 )
 
 // PostData 提交数据
-func PostData(c *gin.Context, text string) []interface{} {
+func PostData(c *gin.Context, text string) response.TextCorrentionResponseItem {
 	var (
-		data []interface{}
+		data response.TextCorrentionResponseItem
 	)
 	uri := "https://api.xf-yun.com/v1/private/s9a87e3ec?authorization=%s&host=%s&date=%s"
 	contentType := "application/json"
@@ -105,76 +105,58 @@ func PostData(c *gin.Context, text string) []interface{} {
 
 	result := tool.HttpPost(reqURL, contentType, string(r))
 	if data, err = formatData([]byte(result)); err != nil {
-		fmt.Println(err)
+		fmt.Println("PostData:", err)
 	}
+	data.Text = text
 
 	return data
 }
 
 // formatData 格式化返回的数据
-func formatData(data []byte) ([]interface{}, error) {
-	// var v []byte
-	// var items []map[string]string
-	// item := map[string]interface{}{}
+func formatData(data []byte) (response.TextCorrentionResponseItem, error) {
 	var items response.TextCorrentionResponseItem
 
-	var dataItems response.TextCorrentionResponseItem
-
 	if err := json.Unmarshal(data, &respData); err != nil {
-		return nil, errors.New("responseData is no json")
+		return items, errors.New("responseData is no json")
 	}
 
 	if respData.Header.Code != 0 {
-		return nil, errors.New("request error")
+		return items, errors.New("request error")
 	}
 
 	textBase64Data, err := base64.StdEncoding.DecodeString(respData.Payload.Result.Text)
-	fmt.Println(string(textBase64Data))
+	fmt.Println("textBase64Data:", string(data))
 	if err != nil {
-		return nil, errors.New("responseData text is no base64")
+		return items, errors.New("responseData text is no base64")
 	}
 
 	if err := json.Unmarshal(textBase64Data, &textOrigData); err != nil {
-		fmt.Println(err)
-		return nil, errors.New("textOrigData is no json")
+		fmt.Println("textOrigData error :", err)
+		return items, errors.New("textOrigData is no json")
 	}
 
-	&items.VecFragment = getItem(textOrigData)
-	fmt.Println(items)
-
-	dataItems.VecFragment = items
-
-	return dataItems, nil
-}
-
-func getItem(data interface{}) response.TextCorrentionResponseItem {
-	// var items []map[string]string
-	var items response.TextCorrentionResponseItem
-
-	k := reflect.ValueOf(data)
+	k := reflect.ValueOf(textOrigData)
 	count := k.NumField()
+	var lists []map[string]interface{}
 	for i := 0; i < count; i++ {
 		if k.Field(i).CanInterface() && reflect.ValueOf(k.Field(i).Interface()).Len() > 0 { //判断是否为可导出字段
 			for _, value := range k.Field(i).Interface().([]interface{}) {
-				// item := make(map[string]string)
-
-				// item["OriFrag"] = tool.Strval(value.([]interface{})[1])
-				// item["BeginPos"] = tool.Strval(value.([]interface{})[0])
-				// item["CorrectFrag"] = tool.Strval(value.([]interface{})[2])
-				// item["EndPos"] = "0"
 				item := map[string]interface{}{
 					"OriFrag":     tool.Strval(value.([]interface{})[1]),
 					"BeginPos":    tool.Strval(value.([]interface{})[0]),
 					"CorrectFrag": tool.Strval(value.([]interface{})[2]),
 					"EndPos":      "0",
 				}
-				err := mapstructure.Decode(item, &items.VecFragment)
+				fmt.Println("item:", item)
+				lists = append(lists, item)
+				err := mapstructure.Decode(lists, &items.VecFragment)
 				if err != nil {
 					fmt.Println(err)
 				}
-				// items = append(items, item)
 			}
 		}
 	}
-	return items
+	fmt.Println(items)
+
+	return items, nil
 }
