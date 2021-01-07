@@ -113,10 +113,8 @@ func NlpTextCorrention(c *gin.Context) {
 
 		items = append(items, rst)
 	}
-	fmt.Println(items)
-	t := NilSliceToEmptySlice(items)
-	c.JSON(http.StatusOK, t)
-	// response.SuccessResult(t, c)
+
+	response.SuccessResult(items, c)
 
 }
 
