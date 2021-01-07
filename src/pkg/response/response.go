@@ -1,6 +1,7 @@
 package response
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -18,6 +19,8 @@ type Result struct {
 func response(status string, code int, msg string, data []interface{}, c *gin.Context) {
 	fmt.Println(data)
 	r := Result{status, code, msg, data}
+	d, _ := json.Marshal(r)
+	fmt.Println(string(d))
 	c.JSON(http.StatusOK, r)
 }
 
