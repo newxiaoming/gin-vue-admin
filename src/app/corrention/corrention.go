@@ -47,7 +47,7 @@ func (p *provider) corrention() string {
 }
 
 // 讯飞文本纠错具体实现方法
-func xfyun(c *gin.Context, text string) response.TextCorrentionResponseItem {
+func xfyun(c *gin.Context, text string, line string, total string) response.TextCorrentionResponseItem {
 	fmt.Println("running function xfyun!", c.Query("charset"))
 
 	host := "api.xf-yun.com"
@@ -57,7 +57,7 @@ func xfyun(c *gin.Context, text string) response.TextCorrentionResponseItem {
 
 	authorization := xfyunauthorization.Authorization(c)
 	c.Set("authorization", authorization)
-	rst := xfyuntextcorrention.PostData(c, text)
+	rst := xfyuntextcorrention.PostData(c, text, line, total)
 	fmt.Println("authorization=", authorization)
 	return rst
 }
@@ -80,13 +80,13 @@ func Call(m map[string]interface{}, name string, params ...interface{}) (result 
 }
 
 // Handle 函数调用入口
-func Handle(c *gin.Context, providerName string, text string) interface{} {
+func Handle(c *gin.Context, providerName string, text string, line string, total string) interface{} {
 	var rst interface{}
 	funcs := map[string]interface{}{
 		"xfyun": xfyun,
 	}
 
-	if result, err := Call(funcs, providerName, c, text); err == nil {
+	if result, err := Call(funcs, providerName, c, text, line, total); err == nil {
 		for _, r := range result {
 			rst = r.Interface()
 		}
@@ -109,7 +109,7 @@ func NlpTextCorrention(c *gin.Context) {
 
 	items := []interface{}{}
 	for _, v := range cp.Content {
-		rst := Handle(c, providerName, v.Text)
+		rst := Handle(c, providerName, v.Text, v.Line, cp.Total)
 
 		items = append(items, rst)
 	}

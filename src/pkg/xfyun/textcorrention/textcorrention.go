@@ -87,7 +87,7 @@ var (
 )
 
 // PostData 提交数据
-func PostData(c *gin.Context, text string) response.TextCorrentionResponseItem {
+func PostData(c *gin.Context, text string, line string, total string) response.TextCorrentionResponseItem {
 	var (
 		data response.TextCorrentionResponseItem
 	)
@@ -122,13 +122,14 @@ func PostData(c *gin.Context, text string) response.TextCorrentionResponseItem {
 	}
 	data.Text = text
 	data.VecFragment = lists
+	data.Line = line
+	data.Total = total
 
 	return data
 }
 
 // formatData 格式化返回的数据
 func formatData(data []byte) ([]map[string]interface{}, error) {
-	var items response.TextCorrentionResponseItem
 	var lists []map[string]interface{}
 
 	if err := json.Unmarshal(data, &respData); err != nil {
@@ -140,19 +141,16 @@ func formatData(data []byte) ([]map[string]interface{}, error) {
 	}
 
 	textBase64Data, err := base64.StdEncoding.DecodeString(respData.Payload.Result.Text)
-	fmt.Println("textBase64Data:", string(textBase64Data))
+
 	if err != nil {
 		return nil, errors.New("responseData text is no base64")
 	}
-	fmt.Println("====")
-	fmt.Println(string(textBase64Data))
-	fmt.Println("====")
+
 	if err := json.Unmarshal(textBase64Data, &textOrigData); err != nil {
 		fmt.Println("textOrigData error :", err)
 		return nil, errors.New("textOrigData is no json")
 	}
 
-	fmt.Println("--------textArr----------")
 	textDataItems := &textData{}
 	err = json.Unmarshal(textBase64Data, textDataItems)
 	fmt.Println(textDataItems)
@@ -171,15 +169,6 @@ func formatData(data []byte) ([]map[string]interface{}, error) {
 
 	lists = textArr
 	textArr = make([]map[string]interface{}, 0)
-
-	fmt.Println("--------lists start----------")
-	fmt.Println(lists)
-	fmt.Println("--------lists end----------")
-	d, _ := json.Marshal(items)
-	fmt.Println(string(d))
-	fmt.Println("---------textArr---------")
-
-	fmt.Println(items)
 
 	return lists, nil
 }
@@ -202,9 +191,5 @@ func getItem(inputItem [][]interface{}) []map[string]interface{} {
 		}
 	}
 
-	fmt.Println("========================================================================")
-	fmt.Println(textArr)
-	// fmt.Println(items)
-	fmt.Println("========================================================================")
 	return lists
 }
