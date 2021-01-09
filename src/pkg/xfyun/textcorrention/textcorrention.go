@@ -83,6 +83,7 @@ type responseData struct {
 var (
 	respData     responseData
 	textOrigData textData
+	textArr      []map[string]interface{}
 )
 
 // PostData 提交数据
@@ -114,87 +115,79 @@ func PostData(c *gin.Context, text string) response.TextCorrentionResponseItem {
 
 	result := tool.HttpPost(reqURL, contentType, string(r))
 	fmt.Println(result)
-	if data, err = formatData([]byte(result)); err != nil {
+	lists, err := formatData([]byte(result))
+
+	if err != nil {
 		fmt.Println("PostData:", err)
 	}
 	data.Text = text
+	data.VecFragment = lists
 
 	return data
 }
 
 // formatData 格式化返回的数据
-func formatData(data []byte) (response.TextCorrentionResponseItem, error) {
+func formatData(data []byte) ([]map[string]interface{}, error) {
 	var items response.TextCorrentionResponseItem
 	var lists []map[string]interface{}
 
 	if err := json.Unmarshal(data, &respData); err != nil {
-		return items, errors.New("responseData is no json")
+		return nil, errors.New("responseData is no json")
 	}
 
 	if respData.Header.Code != 0 {
-		return items, errors.New("request error")
+		return nil, errors.New("request error")
 	}
 
 	textBase64Data, err := base64.StdEncoding.DecodeString(respData.Payload.Result.Text)
 	fmt.Println("textBase64Data:", string(textBase64Data))
 	if err != nil {
-		return items, errors.New("responseData text is no base64")
+		return nil, errors.New("responseData text is no base64")
 	}
 	fmt.Println("====")
 	fmt.Println(string(textBase64Data))
 	fmt.Println("====")
 	if err := json.Unmarshal(textBase64Data, &textOrigData); err != nil {
 		fmt.Println("textOrigData error :", err)
-		return items, errors.New("textOrigData is no json")
+		return nil, errors.New("textOrigData is no json")
 	}
 
-	fmt.Println("------------------")
+	fmt.Println("--------textArr----------")
 	textDataItems := &textData{}
 	err = json.Unmarshal(textBase64Data, textDataItems)
 	fmt.Println(textDataItems)
-	// if len(textDataItems.Char) > 0 {
-	// 	for _, value := range textDataItems.Char {
-	// 		item := map[string]interface{}{
-	// 			"OriFrag":     tool.Strval(value[1]),
-	// 			"BeginPos":    tool.Strval(value[0]),
-	// 			"CorrectFrag": tool.Strval(value[2]),
-	// 			"EndPos":      "0",
-	// 		}
-	// 		lists = append(lists, item)
-	// 		// err := mapstructure.Decode(lists, &items.VecFragment)
-	// 		// if err != nil {
-	// 		// 	fmt.Println(err)
-	// 		// }
-	// 	}
-	// }
 
-	itemsChar := getItem(textDataItems.Char)
-	itemsWord := getItem(textDataItems.Word)
-	itemsRedund := getItem(textDataItems.Redund)
-	itemsMiss := getItem(textDataItems.Miss)
-	itemsOrder := getItem(textDataItems.Order)
-	itemsDapei := getItem(textDataItems.Dapei)
-	itemsPunc := getItem(textDataItems.Punc)
-	itemsIdm := getItem(textDataItems.Idm)
-	itemsOrg := getItem(textDataItems.Org)
-	itemsLeader := getItem(textDataItems.Leader)
-	itemsNumber := getItem(textDataItems.Number)
+	getItem(textDataItems.Char)
+	getItem(textDataItems.Word)
+	getItem(textDataItems.Redund)
+	getItem(textDataItems.Miss)
+	getItem(textDataItems.Order)
+	getItem(textDataItems.Dapei)
+	getItem(textDataItems.Punc)
+	getItem(textDataItems.Idm)
+	getItem(textDataItems.Org)
+	getItem(textDataItems.Leader)
+	getItem(textDataItems.Number)
 
-	lists = append(lists, itemsChar, itemsWord, itemsRedund, itemsMiss, itemsOrder, itemsDapei, itemsPunc, itemsIdm, itemsOrg, itemsLeader, itemsNumber)
+	lists = textArr
+	textArr = make([]map[string]interface{}, 0)
 
+	fmt.Println("--------lists start----------")
 	fmt.Println(lists)
+	fmt.Println("--------lists end----------")
 	d, _ := json.Marshal(items)
 	fmt.Println(string(d))
-	fmt.Println("------------------")
+	fmt.Println("---------textArr---------")
 
 	fmt.Println(items)
 
-	return items, nil
+	return lists, nil
 }
 
 func getItem(inputItem [][]interface{}) []map[string]interface{} {
 	var lists []map[string]interface{}
 	item := map[string]interface{}{}
+
 	// items := response.TextCorrentionResponseItem{}
 	if len(inputItem) > 0 {
 		for _, value := range inputItem {
@@ -205,20 +198,13 @@ func getItem(inputItem [][]interface{}) []map[string]interface{} {
 				"EndPos":      "0",
 			}
 
-			lists = append(lists, item)
-
-			// err := mapstructure.Decode(lists, &items.VecFragment)
-			// if err != nil {
-			// 	fmt.Println(err)
-			// }
+			textArr = append(textArr, item)
 		}
 	}
-	// else {
-	// 	items.VecFragment = make([]map[string]interface{}, 0)
-	// }
-	fmt.Println("==")
-	fmt.Println(item)
+
+	fmt.Println("========================================================================")
+	fmt.Println(textArr)
 	// fmt.Println(items)
-	fmt.Println("==")
+	fmt.Println("========================================================================")
 	return lists
 }
