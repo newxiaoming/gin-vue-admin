@@ -10,25 +10,23 @@ import (
 	"gopkg.in/go-playground/validator.v9"
 )
 
-type CorrentionParams struct {
-	Content []struct {
-		Text string `json:"text" binding:"required"`
-		Line string `json:"line" binding:"required"`
-	} `json:"content" binding:"required,dive"`
-	Total string `json:"total" binding:"required"`
+type TTSParams struct {
+	Business struct {
+		Aue   string `json:"aue" binding:"required"`
+		Vcn   string `json:"vcn" binding:"required"`
+		Pitch int    `json:"pitch" binding:"required"`
+		Speed int    `json:"speed" binding:"required"`
+	} `json:"business" binding:"required"`
+	Data struct {
+		Status int    `json:"status" binding:"required"`
+		Text   string `json:"text" binding:"required"`
+	} `json:"data" binding:"required"`
 }
 
-type publicParams struct {
-	Charset      string `form:"charset" json:"charset" binding:"required"`
-	ProviderName string `form:"provider_name" json:"provider_name" `
-	Signature    string `form:"signature" json:"signature"  binding:"required"`
-	Date         string `form:"date" format_date:"200601020000" json:"date" binding:"required"`
-}
-
-// CheckCorrentionParams 检查提交的字段
-func CheckCorrentionParams() gin.HandlerFunc {
+// CheckTTSParams 检查语音合成（流式版）WebAPI提交的字段
+func CheckTTSParams() gin.HandlerFunc {
 	var (
-		cp CorrentionParams
+		cp TTSParams
 		pp publicParams
 	)
 
